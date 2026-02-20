@@ -31,7 +31,7 @@ tar -czpf "${TEMP_ARCHIVE}" -C "${SOURCE_DIR}" .
 echo "Xifrant la còpia de seguretat..."
 echo "ATENCIÓ: Se't demanarà que introdueixis una contrasenya de xifratge."
 # Creem un xifrat simètric amb AES256
-gpg --symmetric --cipher-algo AES256 "${TEMP_ARCHIVE}"
+gpg --symmetric --cipher-algo AES256 --pinentry-mode loopback "${TEMP_ARCHIVE}"
 
 # 4. NETEJA POST-BACKUP
 if [ -f "${FINAL_ARCHIVE}" ]; then

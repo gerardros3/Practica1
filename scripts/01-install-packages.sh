@@ -34,6 +34,7 @@ PACKAGES=(
     "net-tools"      # Comandes com ifconfig/netstat
     "ufw"            # Tallafoc
     "openssh-server" # Per a connexions remotes segures
+    "gnupg"          # Per a xifratge i gestió de claus (usat en el backup)
 )
 
 echo "Instalant paquets: ${PACKAGES[*]}..."
