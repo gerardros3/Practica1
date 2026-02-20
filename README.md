@@ -8,7 +8,7 @@ Aquest repositori conté la infraestructura com a codi (IaC) i la documentació 
 * `docs/`: Documentació completa del sistema:
   * [Operations Runbook](docs/runbook.md): Manual de procediments, operacions comunes i troubleshooting.
   * [System Architecture](docs/architecture.md): Decisions de disseny, seguretat i justificació de l'arquitectura.
-  * [Reflexions](docs/): Assajos d'aprenentatge individual de l'equip.
+  * [Reflexions](docs/reflections.md): Reflexions sobre el treball realitzat.
 
 ## Com utilitzar aquest repositori per primer cop
 1. Connecteu-vos a la màquina virtual Debian fresca.
