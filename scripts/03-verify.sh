@@ -10,17 +10,18 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 echo "--- Iniciant verificació del sistema ---"
-ERRORS=0
+NEEDS_PACKAGES=0
+NEEDS_DIRS=0
 
 # 1. VERIFICACIÓ DE PAQUETS
 PACKAGES=("git" "vim" "curl" "ufw")
 for pkg in "${PACKAGES[@]}"; do
-    # Comprova si el paquet està instal·lat dpkg
-    if ! dpkg -l | grep -qw "$pkg"; then
-        echo "[ERROR] El paquet '$pkg' no està instal·lat."
-        ERRORS=$((ERRORS + 1))
+    # Comprovem si el paquet està instal·lat correctament
+    if ! dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q "ok installed"; then
+        echo "[AVÍS] El paquet '$pkg' no està instal·lat."
+        NEEDS_PACKAGES=1
     else
-        echo "[OK] Paquet '$pkg' instal·lat."
+        echo "[OK] Paquet '$pkg' correcte."
     fi
 done
 
@@ -31,19 +32,27 @@ for dir in "${DIRS[@]}"; do
     if [ ! -d "${BASE_DIR}/${dir}" ]; then
         echo "[AVÍS] Falta el directori '${BASE_DIR}/${dir}'."
         NEEDS_DIRS=1
+    else
+        echo "[OK] Directori '${dir}' trobat."
     fi
 done
 
-# Verifica si existeix el fitxer done.log
 if [ ! -f "${BASE_DIR}/done.log" ]; then
-    echo "[AVÍS] Falta el fitxer '${BASE_DIR}/done.log'."
+    echo "[AVÍS] Falta el fitxer 'done.log'."
     NEEDS_DIRS=1
+else
+    echo "[OK] Fitxer 'done.log' trobat."
 fi
 
-# 3. RESULTAT FINAL
-if [ "$ERRORS" -gt 0 ]; then
-    echo "--- [ATENCIÓ] S'han trobat $ERRORS errors. Has d'executar els scripts anteriors! ---"
-    exit 1
-else
-    echo "--- [ÈXIT] Tot el sistema està configurat correctament! ---"
+# 3. AUTO-REPARACIÓ (IDEMPOTÈNCIA)
+if [ "$NEEDS_PACKAGES" -eq 1 ]; then
+    echo "--- [ACCIÓ] Re-aplicant l'script de paquets... ---"
+    bash ./01-install-packages.sh
 fi
+
+if [ "$NEEDS_DIRS" -eq 1 ]; then
+    echo "--- [ACCIÓ] Re-aplicant l'script de directoris... ---"
+    bash ./02-directories.sh
+fi
+
+echo "--- [ÈXIT] Verificació completada. El sistema està en l'estat desitjat. ---"
