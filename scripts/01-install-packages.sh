@@ -40,4 +40,16 @@ PACKAGES=(
 echo "Instalant paquets: ${PACKAGES[*]}..."
 apt-get install -y "${PACKAGES[@]}"
 
+# 5. CONFIGURACIÓ SSH (Compatibilitat Windows)
+echo "Configurant regles SSH per a Windows..."
+# Comprovem si la línia ja existeix per mantenir la IDEMPOTÈNCIA
+if ! grep -q "KexAlgorithms" /etc/ssh/sshd_config; then
+    echo "KexAlgorithms curve25519-sha256@libssh.org,ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256" >> /etc/ssh/sshd_config
+    echo "HostKeyAlgorithms ssh-ed25519,ssh-rsa" >> /etc/ssh/sshd_config
+    systemctl restart ssh
+    echo "[OK] Configuració SSH actualitzada i servei reiniciat."
+else
+    echo "[OK] La configuració SSH ja estava aplicada."
+fi
+
 echo "--- Instalacio completada correctament ---"

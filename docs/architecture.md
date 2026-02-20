@@ -19,6 +19,5 @@
 * **Passwords vs. Keys for SSH:** Actualment el sistema permet l'accés per contrasenya, la qual cosa és vulnerable a atacs de força bruta o diccionari. El nostre objectiu és transicionar a claus SSH (Public/Private Key pair) per a tots els usuaris, la qual cosa ens permetrà desactivar el *password login* al fitxer `sshd_config`, eliminant un vector d'atac massiu.
 
 * **Disaster Recovery i Reinstal·lació:**
-  Si s'hagués de reinstal·lar el sistema, els nostres scripts (sent idempotents) poden restaurar tota l'estructura base (carpetes, permisos i paquets). **El que faltaria:**
-  1. Les dades pròpiament dites (que hauríem de restaurar extraient la còpia de seguretat generada pel nostre script de backup).
-  2. Les configuracions manuals fetes fora de l'script (com ajustos a `/etc/ssh/sshd_config`). En el futur, s'haurien d'afegir plantilles d'aquests fitxers al repositori.
+  Si s'hagués de reinstal·lar el sistema, els nostres scripts (sent idempotents) poden restaurar tota l'estructura i configuració base (carpetes, permisos, paquets i, fins i tot, els ajustos de compatibilitat de l'arxiu `sshd_config`). **El que faltaria:**
+  * Les dades pròpiament dites dels usuaris i de l'empresa. Aquestes s'haurien de restaurar extraient i desxifrant manualment l'última còpia de seguretat generada pel nostre script de backup (`04-backup.sh`). Tota la resta de la infraestructura s'aixeca des de zero sense intervenció manual, complint amb el paradigma d'Infraestructura com a Codi (IaC).
