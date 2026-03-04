@@ -21,3 +21,8 @@
 * **Disaster Recovery i Reinstal·lació:**
   Si s'hagués de reinstal·lar el sistema, els nostres scripts (sent idempotents) poden restaurar tota l'estructura i configuració base (carpetes, permisos, paquets i, fins i tot, els ajustos de compatibilitat de l'arxiu `sshd_config`). **El que faltaria:**
   * Les dades pròpiament dites dels usuaris i de l'empresa. Aquestes s'haurien de restaurar extraient i desxifrant manualment l'última còpia de seguretat generada pel nostre script de backup (`04-backup.sh`). Tota la resta de la infraestructura s'aixeca des de zero sense intervenció manual, complint amb el paradigma d'Infraestructura com a Codi (IaC).
+
+  ## 3. Observability & Automation (Week 2)
+
+* **Resiliència de Serveis:** Hem configurat Nginx amb un *drop-in override* de systemd (`Restart=always`, `RestartSec=5`). Aquest disseny garanteix que el servei s'aixequi sol davant d'una fallada inesperada, millorant l'uptime del sistema.
+* **Automatització de Tasques:** Hem substituït l'execució manual de backups per *systemd timers*. Això ens proporciona observabilitat integrada i un registre d'auditoria centralitzat, que és superior al cron clàssic. L'script ara llegeix els secrets d'un directori segur (`/root/secrets`) per permetre l'execució no interactiva sense exposar la contrasenya a Git.
