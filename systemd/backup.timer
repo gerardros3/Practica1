@@ -1,0 +1,9 @@
+[Unit]
+Description=Temporizador per a la còpia de seguretat diària
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=timers.target

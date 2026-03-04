@@ -27,11 +27,17 @@ echo "Generant arxiu Tar amb permisos preservats..."
 # -c (create), -z (gzip), -p (preserve permissions), -f (file)
 tar -czpf "${TEMP_ARCHIVE}" -C "${SOURCE_DIR}" .
 
-# 3. XIFRAR L'ARXIU (GPG)
-echo "Xifrant la còpia de seguretat..."
-echo "ATENCIÓ: Se't demanarà que introdueixis una contrasenya de xifratge."
-# Creem un xifrat simètric amb AES256
-gpg --symmetric --cipher-algo AES256 --pinentry-mode loopback "${TEMP_ARCHIVE}"
+# 3. XIFRAR L'ARXIU (GPG) AUTOMATITZAT
+echo "Xifrant la còpia de seguretat de forma no interactiva..."
+SECRET_FILE="/root/secrets/backup_pass.txt"
+
+if [ ! -f "$SECRET_FILE" ]; then
+    echo "[ERROR] No s'ha trobat el fitxer de contrasenyes a $SECRET_FILE"
+    exit 1
+fi
+
+# --batch i --yes eviten que GPG faci preguntes per pantalla
+gpg --symmetric --cipher-algo AES256 --batch --yes --passphrase-file "$SECRET_FILE" "${TEMP_ARCHIVE}"
 
 # 4. NETEJA POST-BACKUP
 if [ -f "${FINAL_ARCHIVE}" ]; then

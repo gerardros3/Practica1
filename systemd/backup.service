@@ -1,0 +1,7 @@
+[Unit]
+Description=Còpia de seguretat diària de Greendevcorp
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/admin/Practica1/scripts/04-backup.sh
