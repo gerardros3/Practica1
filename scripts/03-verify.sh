@@ -1,58 +1,88 @@
 #!/bin/bash
-# Descripció: Verifica que els paquets i directoris existeixen
-# Autor: Gerard Ros i Miquel Garcia
+# Script: 03-verify.sh
+# Purpose: Verify that required packages and directories exist, auto-repair if needed
+# Usage: sudo ./03-verify.sh
+# Author: Gerard Ros & Miquel Garcia
+# Date: 2026-03-04
+# Exit Codes:
+#   0 - Success
+#   1 - Execution failed (not root)
 
 set -euo pipefail
 
-if [ "$EUID" -ne 0 ]; then 
-  echo "Error: Si us plau, executa l'script amb sudo."
-  exit 1
-fi
+# Constants
+readonly BASE_DIR="/home/greendevcorp"
+readonly DONE_LOG="${BASE_DIR}/done.log"
 
-echo "--- Iniciant verificació del sistema ---"
-NEEDS_PACKAGES=0
-NEEDS_DIRS=0
+log_info() { echo "[INFO] $*"; }
+log_warn() { echo "[WARN] $*"; }
+log_error() { echo "[ERROR] $*" >&2; }
 
-# 1. VERIFICACIÓ DE PAQUETS
-PACKAGES=("git" "vim" "curl" "ufw")
-for pkg in "${PACKAGES[@]}"; do
-    # Comprovem si el paquet està instal·lat correctament
-    if ! dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q "ok installed"; then
-        echo "[AVÍS] El paquet '$pkg' no està instal·lat."
-        NEEDS_PACKAGES=1
-    else
-        echo "[OK] Paquet '$pkg' correcte."
+check_root() {
+    if [ "$EUID" -ne 0 ]; then
+        log_error "Please run the script with sudo."
+        exit 1
     fi
-done
+}
 
-# 2. VERIFICACIÓ DE DIRECTORIS
-BASE_DIR="/home/greendevcorp"
-DIRS=("bin" "shared" "backups" "logs" "data")
-for dir in "${DIRS[@]}"; do
-    if [ ! -d "${BASE_DIR}/${dir}" ]; then
-        echo "[AVÍS] Falta el directori '${BASE_DIR}/${dir}'."
-        NEEDS_DIRS=1
+verify_packages() {
+    local packages=("git" "vim" "curl" "ufw")
+    local needs_packages=0
+
+    for pkg in "${packages[@]}"; do
+        if ! dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q "ok installed"; then
+            log_warn "Package '$pkg' is not installed."
+            needs_packages=1
+        else
+            log_info "Package '$pkg' is correctly installed."
+        fi
+    done
+    return "$needs_packages"
+}
+
+verify_directories() {
+    local dirs=("bin" "shared" "backups" "logs" "data")
+    local needs_dirs=0
+
+    for dir in "${dirs[@]}"; do
+        if [ ! -d "${BASE_DIR}/${dir}" ]; then
+            log_warn "Missing directory: ${BASE_DIR}/${dir}"
+            needs_dirs=1
+        else
+            log_info "Directory '$dir' found."
+        fi
+    done
+
+    if [ ! -f "$DONE_LOG" ]; then
+        log_warn "Missing marker file '$DONE_LOG'."
+        needs_dirs=1
     else
-        echo "[OK] Directori '${dir}' trobat."
+        log_info "Marker file '$DONE_LOG' found."
     fi
-done
+    return "$needs_dirs"
+}
 
-if [ ! -f "${BASE_DIR}/done.log" ]; then
-    echo "[AVÍS] Falta el fitxer 'done.log'."
-    NEEDS_DIRS=1
-else
-    echo "[OK] Fitxer 'done.log' trobat."
-fi
+main() {
+    check_root
+    log_info "Starting system verification..."
 
-# 3. AUTO-REPARACIÓ (IDEMPOTÈNCIA)
-if [ "$NEEDS_PACKAGES" -eq 1 ]; then
-    echo "--- [ACCIÓ] Re-aplicant l'script de paquets... ---"
-    bash ./01-install-packages.sh
-fi
+    local trigger_packages=0
+    local trigger_dirs=0
 
-if [ "$NEEDS_DIRS" -eq 1 ]; then
-    echo "--- [ACCIÓ] Re-aplicant l'script de directoris... ---"
-    bash ./02-directories.sh
-fi
+    verify_packages || trigger_packages=1
+    verify_directories || trigger_dirs=1
 
-echo "--- [ÈXIT] Verificació completada. El sistema està en l'estat desitjat. ---"
+    if [ "$trigger_packages" -eq 1 ]; then
+        log_info "Auto-repairing: Running package installation script..."
+        bash ./01-install-packages.sh
+    fi
+
+    if [ "$trigger_dirs" -eq 1 ]; then
+        log_info "Auto-repairing: Running directory creation script..."
+        bash ./02-directories.sh
+    fi
+
+    log_info "Verification completed. System is in the desired state."
+}
+
+main "$@"

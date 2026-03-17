@@ -1,55 +1,83 @@
 #!/bin/bash
-# Descripcio: Instal·la paquets bàsics necessaris per a la pràctica
-# Autor: Gerard Ros i Miquel Garcia
+# Script: 01-install-packages.sh
+# Purpose: Install basic required packages for the environment and configure SSH
+# Usage: sudo ./01-install-packages.sh
+# Author: Gerard Ros & Miquel Garcia
+# Date: 2026-03-04
+# Exit Codes:
+#   0 - Success
+#   1 - Execution failed (not root, or lockfile exists)
 
-# 1. SEGURETAT: Atura l'script si hi ha un error o una variable no definida
 set -euo pipefail
 
-# 2. MECANISME DE BLOQUEIG: Evita execucions simultanies
-LOCKFILE="/tmp/install-packages.lock"
-if [ -e ${LOCKFILE} ]; then
-    echo "Error: L'script ja s'esta executant o el fitxer de bloqueig existeix."
-    exit 1
-fi
-trap "rm -f ${LOCKFILE}" EXIT
-touch ${LOCKFILE}
+# Constants
+readonly LOCKFILE="/tmp/install-packages.lock"
+readonly SSHD_CONFIG="/etc/ssh/sshd_config"
 
-echo "--- Iniciant la instal paquets basics---"
+log_info() {
+    echo "[INFO] $(date +'%Y-%m-%d %H:%M:%S') - $*"
+}
 
-# 3. VERIFICACIO DE PRIVILEGIS: Cal ser root o usar sudo
-if [ "$EUID" -ne 0 ]; then 
-  echo "Si us plau, executa l'script amb sudo."
-  exit 1
-fi
+log_error() {
+    echo "[ERROR] $(date +'%Y-%m-%d %H:%M:%S') - $*" >&2
+}
 
-# 4. ACTUALITZACIO I INSTALACIO (IDEMPOTENT)
-echo "Actualitzant l'index de paquets..."
-apt-get update -y
+check_root() {
+    if [ "$EUID" -ne 0 ]; then
+        log_error "Please run the script with sudo."
+        exit 1
+    fi
+}
 
-PACKAGES=(
-    "git"            # Necessari per al repositori de la practica
-    "vim"            # Editor de text recomanat
-    "curl"           # Eina de xarxa
-    "sudo"           # Per a l'escalada de privilegis
-    "net-tools"      # Comandes com ifconfig/netstat
-    "ufw"            # Tallafoc
-    "openssh-server" # Per a connexions remotes segures
-    "gnupg"          # Per a xifratge i gestió de claus (usat en el backup)
-)
+acquire_lock() {
+    if [ -e "$LOCKFILE" ]; then
+        log_error "Script is already running or lockfile exists."
+        exit 1
+    fi
+    trap 'rm -f "$LOCKFILE"' EXIT
+    touch "$LOCKFILE"
+}
 
-echo "Instalant paquets: ${PACKAGES[*]}..."
-apt-get install -y "${PACKAGES[@]}"
+install_packages() {
+    local packages=(
+        "git"            # Version control
+        "vim"            # Text editor
+        "curl"           # Network tool
+        "sudo"           # Privilege escalation
+        "net-tools"      # Network statistics
+        "ufw"            # Firewall
+        "openssh-server" # Secure remote connections
+        "gnupg"          # Encryption tool for backups
+    )
 
-# 5. CONFIGURACIÓ SSH (Compatibilitat Windows)
-echo "Configurant regles SSH per a Windows..."
-# Comprovem si la línia ja existeix per mantenir la IDEMPOTÈNCIA
-if ! grep -q "KexAlgorithms" /etc/ssh/sshd_config; then
-    echo "KexAlgorithms curve25519-sha256@libssh.org,ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256" >> /etc/ssh/sshd_config
-    echo "HostKeyAlgorithms ssh-ed25519,ssh-rsa" >> /etc/ssh/sshd_config
-    systemctl restart ssh
-    echo "[OK] Configuració SSH actualitzada i servei reiniciat."
-else
-    echo "[OK] La configuració SSH ja estava aplicada."
-fi
+    log_info "Updating package index..."
+    apt-get update -y > /dev/null
 
-echo "--- Instalacio completada correctament ---"
+    log_info "Installing packages: ${packages[*]}..."
+    # We redirect stdout to /dev/null to keep the console output clean, 
+    # but let errors (stderr) print to the terminal if something fails.
+    apt-get install -y "${packages[@]}" > /dev/null
+}
+
+configure_ssh() {
+    log_info "Configuring SSH rules for Windows compatibility..."
+    if ! grep -q "KexAlgorithms" "$SSHD_CONFIG"; then
+        echo "KexAlgorithms curve25519-sha256@libssh.org,ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256" >> "$SSHD_CONFIG"
+        echo "HostKeyAlgorithms ssh-ed25519,ssh-rsa" >> "$SSHD_CONFIG"
+        systemctl restart ssh
+        log_info "SSH configuration updated and service restarted."
+    else
+        log_info "SSH configuration was already applied (Idempotent)."
+    fi
+}
+
+main() {
+    check_root
+    acquire_lock
+    log_info "Starting basic package installation..."
+    install_packages
+    configure_ssh
+    log_info "Installation completed successfully."
+}
+
+main "$@"

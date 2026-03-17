@@ -1,38 +1,65 @@
 #!/bin/bash
-# Descripció: Crea l'estructura de directoris administrativa alineada amb Week 4
-# Autor: Gerard Ros i Miquel Garcia
+# Script: 02-directories.sh
+# Purpose: Create the administrative directory structure
+# Usage: sudo ./02-directories.sh
+# Author: Gerard Ros & Miquel Garcia
+# Date: 2026-03-04
+# Exit Codes:
+#   0 - Success
+#   1 - Execution failed (not root)
 
 set -euo pipefail
 
-if [ "$EUID" -ne 0 ]; then 
-  echo "Error: Si us plau, executa l'script amb sudo."
-  exit 1
-fi
+# Constants
+readonly BASE_DIR="/home/greendevcorp"
+readonly LOG_FILE="${BASE_DIR}/done.log"
+readonly TARGET_USER="gsx"
+readonly TARGET_GROUP="gsx"
 
-echo "--- Iniciant la creació de l'estructura de directoris ---"
+log_info() {
+    echo "[INFO] $(date +'%Y-%m-%d %H:%M:%S') - $*"
+}
 
-BASE_DIR="/home/greendevcorp"
-DIRS=(
-    "${BASE_DIR}/bin"      # Scripts i eines administratives
-    "${BASE_DIR}/shared"   # Carpeta de treball compartit
-    "${BASE_DIR}/backups"  # Còpies de seguretat
-    "${BASE_DIR}/logs"     # Logs d'activitat i errors
-    "${BASE_DIR}/data"     # Dades sensibles i fitxers de treball
-)
+log_error() {
+    echo "[ERROR] $(date +'%Y-%m-%d %H:%M:%S') - $*" >&2
+}
 
-# Creació de directoris
-for dir in "${DIRS[@]}"; do
-    echo "Configurant directori: ${dir}"
-    mkdir -p "${dir}"
-done
+check_root() {
+    if [ "$EUID" -ne 0 ]; then
+        log_error "Please run the script with sudo."
+        exit 1
+    fi
+}
 
-# Creació del fitxer de logs d'activitat
-touch "${BASE_DIR}/done.log"
+create_directories() {
+    local dirs=(
+        "${BASE_DIR}/bin"      # Scripts and admin tools
+        "${BASE_DIR}/shared"   # Shared workspace
+        "${BASE_DIR}/backups"  # Security backups
+        "${BASE_DIR}/logs"     # Activity and error logs
+        "${BASE_DIR}/data"     # Sensitive data
+    )
 
-echo "Establint permisos base..."
-# Assignar propietat a l'usuari gsx i grup gsx, i establir permisos restrictius
-chown -R gsx:gsx "${BASE_DIR}"
-# permisos: propietari pot llegir, escriure i executar; grup pot llegir i executar; altres no tenen accés
-chmod -R 750 "${BASE_DIR}"
+    for dir in "${dirs[@]}"; do
+        log_info "Configuring directory: $dir"
+        mkdir -p "$dir"
+    done
+}
 
-echo "--- Estructura de directoris creada correctament a ${BASE_DIR} ---"
+apply_permissions() {
+    log_info "Setting base permissions..."
+    touch "$LOG_FILE"
+    
+    chown -R "${TARGET_USER}:${TARGET_GROUP}" "$BASE_DIR"
+    chmod -R 750 "$BASE_DIR"
+}
+
+main() {
+    check_root
+    log_info "Starting directory structure creation..."
+    create_directories
+    apply_permissions
+    log_info "Directory structure successfully created at $BASE_DIR."
+}
+
+main "$@"

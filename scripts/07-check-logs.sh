@@ -1,16 +1,46 @@
 #!/bin/bash
-# Descripció: Mostra l'estat i els logs dels serveis crítics (Observabilitat)
+# Script: 07-check-logs.sh
+# Purpose: Display status and logs for critical services (Observability)
+# Usage: sudo ./07-check-logs.sh
+# Author: Gerard Ros & Miquel Garcia
+# Date: 2026-03-04
+# Exit Codes:
+#   0 - Success
 
-echo "========================================="
-echo "   ESTAT DELS SERVEIS - GREENDEVCORP     "
-echo "========================================="
+set -euo pipefail
 
-echo -e "\n---> 1. NGINX (Servidor Web)"
-systemctl is-active --quiet nginx && echo "[ACTIU] Nginx està funcionant." || echo "[ERROR] Nginx està caigut."
-echo "Últims 5 registres d'Nginx (journald):"
-journalctl -u nginx -n 5 --no-pager
+log_header() {
+    echo "========================================="
+    echo "   SERVICE STATUS - GREENDEVCORP         "
+    echo "========================================="
+}
 
-echo -e "\n---> 2. BACKUPS AUTOMÀTICS"
-systemctl list-timers | grep backup.timer > /dev/null && echo "[ACTIU] El timer de backups està programat." || echo "[AVÍS] El timer no està programat."
-echo "Últims 5 registres del servei de Backup:"
-journalctl -u backup.service -n 5 --no-pager
+check_nginx() {
+    echo -e "\n---> 1. NGINX (Web Server)"
+    if systemctl is-active --quiet nginx; then
+        echo "[ACTIVE] Nginx is running."
+    else
+        echo "[ERROR] Nginx is down."
+    fi
+    echo "Last 5 Nginx log entries (journald):"
+    journalctl -u nginx -n 5 --no-pager
+}
+
+check_backups() {
+    echo -e "\n---> 2. AUTOMATED BACKUPS"
+    if systemctl list-timers | grep -q "backup.timer"; then
+        echo "[ACTIVE] The backup timer is scheduled."
+    else
+        echo "[WARNING] The backup timer is not scheduled."
+    fi
+    echo "Last 5 Backup service log entries:"
+    journalctl -u backup.service -n 5 --no-pager
+}
+
+main() {
+    log_header
+    check_nginx
+    check_backups
+}
+
+main "$@"

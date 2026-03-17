@@ -1,5 +1,5 @@
 [Unit]
-Description=Temporizador per a la còpia de seguretat diària
+Description=Daily timer for the Secure Backup service
 
 [Timer]
 OnCalendar=daily

@@ -1,50 +1,75 @@
 #!/bin/bash
-# Descripció: Empaqueta i xifra dades sensibles preservant atributs
-# Autor: Gerard Ros i Miquel Garcia
+# Script: 04-backup.sh
+# Purpose: Package and encrypt sensitive data while preserving attributes
+# Usage: sudo ./04-backup.sh
+# Author: Gerard Ros & Miquel Garcia
+# Date: 2026-03-04
+# Exit Codes:
+#   0 - Success
+#   1 - Execution failed (not root, missing secrets, or encryption failed)
 
 set -euo pipefail
 
-if [ "$EUID" -ne 0 ]; then 
-  echo "Error: Si us plau, executa l'script amb sudo."
-  exit 1
-fi
+# Constants
+readonly SOURCE_DIR="/home/greendevcorp/data"
+readonly BACKUP_DIR="/home/greendevcorp/backups"
+readonly SECRET_FILE="/root/secrets/backup_pass.txt"
 
-echo "--- Iniciant procés de Backup Segur ---"
+log_info() { echo "[INFO] $(date +'%Y-%m-%d %H:%M:%S') - $*"; }
+log_error() { echo "[ERROR] $(date +'%Y-%m-%d %H:%M:%S') - $*" >&2; }
 
-# 1. VARIABLES
-SOURCE_DIR="/home/greendevcorp/data"
-BACKUP_DIR="/home/greendevcorp/backups"
-TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-TEMP_ARCHIVE="${BACKUP_DIR}/backup_${TIMESTAMP}.tar.gz"
-FINAL_ARCHIVE="${TEMP_ARCHIVE}.gpg"
+check_root() {
+    if [ "$EUID" -ne 0 ]; then
+        log_error "Please run the script with sudo."
+        exit 1
+    fi
+}
 
-# Assegurem que el directori d'origen existeix i té alguna cosa
-mkdir -p "${SOURCE_DIR}"
-touch "${SOURCE_DIR}/test_data_prova.txt" # Fitxer de prova temporal
+prepare_environment() {
+    mkdir -p "$SOURCE_DIR"
+    mkdir -p "$BACKUP_DIR"
+    # Create dummy data for testing purposes
+    touch "${SOURCE_DIR}/test_data_prova.txt"
+}
 
-# 2. EMPAQUETAR PRESERVANT ATRIBUTS
-echo "Generant arxiu Tar amb permisos preservats..."
-# -c (create), -z (gzip), -p (preserve permissions), -f (file)
-tar -czpf "${TEMP_ARCHIVE}" -C "${SOURCE_DIR}" .
+create_backup() {
+    local timestamp
+    timestamp=$(date +"%Y%m%d_%H%M%S")
+    local temp_archive="${BACKUP_DIR}/backup_${timestamp}.tar.gz"
+    local final_archive="${temp_archive}.gpg"
 
-# 3. XIFRAR L'ARXIU (GPG) AUTOMATITZAT
-echo "Xifrant la còpia de seguretat de forma no interactiva..."
-SECRET_FILE="/root/secrets/backup_pass.txt"
+    # Document non-obvious logic:
+    # -c (create), -z (compress with gzip), -p (preserve permissions), -f (specify filename)
+    log_info "Generating Tar archive preserving permissions..."
+    tar -czpf "$temp_archive" -C "$SOURCE_DIR" .
 
-if [ ! -f "$SECRET_FILE" ]; then
-    echo "[ERROR] No s'ha trobat el fitxer de contrasenyes a $SECRET_FILE"
-    exit 1
-fi
+    if [ ! -f "$SECRET_FILE" ]; then
+        log_error "Password file not found at $SECRET_FILE"
+        rm -f "$temp_archive"
+        exit 1
+    fi
 
-# --batch i --yes eviten que GPG faci preguntes per pantalla
-gpg --symmetric --cipher-algo AES256 --batch --yes --passphrase-file "$SECRET_FILE" "${TEMP_ARCHIVE}"
+    # Document non-obvious logic:
+    # --batch and --yes are crucial here to prevent GPG from prompting for user input
+    # during unattended automated runs (e.g., systemd timers at 3 AM).
+    log_info "Encrypting the backup non-interactively..."
+    gpg --symmetric --cipher-algo AES256 --batch --yes --passphrase-file "$SECRET_FILE" "$temp_archive"
 
-# 4. NETEJA POST-BACKUP
-if [ -f "${FINAL_ARCHIVE}" ]; then
-    echo "Netejant arxiu temporal no xifrat..."
-    rm -f "${TEMP_ARCHIVE}"
-    echo "--- [ÈXIT] Backup completat: ${FINAL_ARCHIVE} ---"
-else
-    echo "--- [ERROR] Hi ha hagut un problema xifrant el backup. ---"
-    exit 1
-fi
+    if [ -f "$final_archive" ]; then
+        log_info "Cleaning up unencrypted temporary archive..."
+        rm -f "$temp_archive"
+        log_info "Backup successfully completed: $final_archive"
+    else
+        log_error "There was a problem encrypting the backup."
+        exit 1
+    fi
+}
+
+main() {
+    check_root
+    log_info "Starting Secure Backup process..."
+    prepare_environment
+    create_backup
+}
+
+main "$@"

@@ -1,44 +1,72 @@
 #!/bin/bash
-# Descripció: Configura els timers de Systemd per als backups
+# Script: 06-setup-timers.sh
+# Purpose: Configure systemd timers for automated backups
+# Usage: sudo ./06-setup-timers.sh
+# Author: Gerard Ros & Miquel Garcia
+# Date: 2026-03-04
+# Exit Codes:
+#   0 - Success
+#   1 - Execution failed (not root)
 
 set -euo pipefail
 
-if [ "$EUID" -ne 0 ]; then 
-  echo "Error: Executa amb sudo."
-  exit 1
-fi
+# Constants
+readonly SECRET_DIR="/root/secrets"
+readonly SECRET_FILE="${SECRET_DIR}/backup_pass.txt"
+readonly SYSTEMD_DIR="/etc/systemd/system/"
+readonly PROJECT_SYSTEMD_DIR="/opt/admin/Practica1/systemd"
 
-echo "--- Preparant l'entorn segur ---"
-SECRET_DIR="/root/secrets"
-SECRET_FILE="${SECRET_DIR}/backup_pass.txt"
+log_info() { echo "[INFO] $*"; }
+log_error() { echo "[ERROR] $*" >&2; }
 
-# Creem el secret només si no existeix (Idempotència)
-if [ ! -f "$SECRET_FILE" ]; then
-    echo "Configuració inicial: Cal establir la contrasenya per als backups automàtics."
-    mkdir -p "$SECRET_DIR"
-    chmod 700 "$SECRET_DIR"
+check_root() {
+    if [ "$EUID" -ne 0 ]; then
+        log_error "Please run the script with sudo."
+        exit 1
+    fi
+}
+
+setup_secrets() {
+    log_info "Preparing secure environment..."
+    if [ ! -f "$SECRET_FILE" ]; then
+        log_info "Initial setup: You must establish a password for automated backups."
+        mkdir -p "$SECRET_DIR"
+        chmod 700 "$SECRET_DIR"
+        
+        local backup_pass
+        # -s hides input for security
+        read -r -s -p "Enter the encryption password (e.g., gsx2026): " backup_pass
+        echo "" # Newline after silent prompt
+        
+        echo "$backup_pass" > "$SECRET_FILE"
+        chmod 600 "$SECRET_FILE"
+        log_info "Secret securely saved at $SECRET_FILE"
+    else
+        log_info "Secrets file is already configured."
+    fi
+}
+
+install_systemd_units() {
+    log_info "Installing automation services..."
     
-    # La opció -s de read amaga el text mentre tecleges (seguretat)
-    read -s -p "Introdueix la contrasenya de xifratge (ex: gsx2026): " BACKUP_PASS
-    echo "" # Salt de línia
-    
-    echo "$BACKUP_PASS" > "$SECRET_FILE"
-    chmod 600 "$SECRET_FILE"
-    echo "[OK] Secret guardat de forma segura a $SECRET_FILE"
-else
-    echo "[OK] El fitxer de secrets ja està configurat."
-fi
+    # Check if files exist before copying
+    if [ ! -f "${PROJECT_SYSTEMD_DIR}/backup.service" ] || [ ! -f "${PROJECT_SYSTEMD_DIR}/backup.timer" ]; then
+        log_error "Systemd unit files not found in ${PROJECT_SYSTEMD_DIR}. Please check your repository."
+        exit 1
+    fi
 
-echo "--- Instal·lant serveis d'automatització ---"
+    cp "${PROJECT_SYSTEMD_DIR}/backup.service" "$SYSTEMD_DIR"
+    cp "${PROJECT_SYSTEMD_DIR}/backup.timer" "$SYSTEMD_DIR"
 
-# Copiem els arxius de configuració de systemd
-cp /opt/admin/Practica1/systemd/backup.service /etc/systemd/system/
-cp /opt/admin/Practica1/systemd/backup.timer /etc/systemd/system/
+    systemctl daemon-reload
+    systemctl enable --now backup.timer
+}
 
-# Recarreguem el dimoni de systemd perquè detecti els nous arxius
-systemctl daemon-reload
+main() {
+    check_root
+    setup_secrets
+    install_systemd_units
+    log_info "Backup timer installed and activated successfully."
+}
 
-# Activem el temporitzador
-systemctl enable --now backup.timer
-
-echo "--- [EXIT] Temporitzador de backup instal·lat i activat. ---"
+main "$@"

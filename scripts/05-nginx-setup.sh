@@ -1,37 +1,64 @@
 #!/bin/bash
-# Descripció: Instal·la i configura Nginx per a auto-recuperació (Week 2)
+# Script: 05-nginx-setup.sh
+# Purpose: Install and configure Nginx for auto-recovery
+# Usage: sudo ./05-nginx-setup.sh
+# Author: Gerard Ros & Miquel Garcia
+# Date: 2026-03-04
+# Exit Codes:
+#   0 - Success
+#   1 - Execution failed (not root)
 
 set -euo pipefail
 
-if [ "$EUID" -ne 0 ]; then 
-  echo "Error: Si us plau, executa l'script amb sudo."
-  exit 1
-fi
+# Constants
+readonly OVERRIDE_DIR="/etc/systemd/system/nginx.service.d"
+readonly OVERRIDE_FILE="${OVERRIDE_DIR}/override.conf"
 
-echo "--- Iniciant instal·lació i configuració de Nginx ---"
+log_info() { echo "[INFO] $*"; }
+log_error() { echo "[ERROR] $*" >&2; }
 
-# 1. Instal·lació idempotent
-if ! dpkg-query -W -f='${Status}' nginx 2>/dev/null | grep -q "ok installed"; then
-    echo "Instal·lant Nginx..."
-    apt-get update -y
-    apt-get install -y nginx
-else
-    echo "[OK] Nginx ja està instal·lat."
-fi
+check_root() {
+    if [ "$EUID" -ne 0 ]; then
+        log_error "Please run the script with sudo."
+        exit 1
+    fi
+}
 
-# 2. Configuració de l'Auto-recuperació (Drop-in override de Systemd)
-echo "Configurant resiliència de Nginx (Restart=always)..."
-mkdir -p /etc/systemd/system/nginx.service.d
+install_nginx() {
+    if ! dpkg-query -W -f='${Status}' nginx 2>/dev/null | grep -q "ok installed"; then
+        log_info "Installing Nginx..."
+        apt-get update -y > /dev/null
+        apt-get install -y nginx > /dev/null
+    else
+        log_info "Nginx is already installed."
+    fi
+}
 
-cat <<EOF > /etc/systemd/system/nginx.service.d/override.conf
+configure_resilience() {
+    log_info "Configuring Nginx resilience (Restart=always)..."
+
+    # We use a drop-in override directory (*.service.d) instead of modifying 
+    # the main nginx.service file directly. This prevents package updates 
+    # from overwriting our custom resilience rules.
+    mkdir -p "$OVERRIDE_DIR"
+
+    cat <<EOF > "$OVERRIDE_FILE"
 [Service]
 Restart=always
 RestartSec=5
 EOF
 
-# 3. Aplicar canvis a Systemd
-systemctl daemon-reload
-systemctl enable nginx
-systemctl restart nginx
+    systemctl daemon-reload
+    systemctl enable nginx
+    systemctl restart nginx
+}
 
-echo "--- [EXIT] Nginx configurat per auto-recuperar-se si cau. ---"
+main() {
+    check_root
+    log_info "Starting Nginx installation and configuration..."
+    install_nginx
+    configure_resilience
+    log_info "Nginx configured to auto-recover on failure."
+}
+
+main "$@"

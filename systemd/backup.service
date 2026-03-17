@@ -1,5 +1,5 @@
 [Unit]
-Description=Còpia de seguretat diària de Greendevcorp
+Description=Daily Secure Backup for Greendevcorp
 After=network.target
 
 [Service]
