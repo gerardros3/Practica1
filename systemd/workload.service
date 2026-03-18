@@ -1,0 +1,20 @@
+[Unit]
+Description=Intensive Workload Service with cgroup limits (Week 3)
+After=network.target
+
+[Service]
+ExecStart=/opt/admin/Practica1/scripts/09-workload-signals.sh
+Restart=always
+
+# CGROUPS RESOURCE LIMITS
+# Prevent the 'yes' commands from monopolizing the CPU
+CPUQuota=20%
+# Limit memory usage
+MemoryMax=50M
+
+# Tell systemd how to gracefully stop it
+KillSignal=SIGTERM
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target
