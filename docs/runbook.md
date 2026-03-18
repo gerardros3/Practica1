@@ -19,3 +19,12 @@ La infraestructura utilitza `systemd` per a la gestió de serveis i `journald` p
 ### Troubleshooting: Com diagnostiquem els errors?
 * **Nginx cau a les 3 AM:** No cal fer res a l'instant. `systemd` està configurat per reiniciar-lo automàticament (`Restart=always`). L'endemà ho veurem als logs executant l'script d'observabilitat.
 * **Backups fallen silenciosament:** Si el backup falla (ex: disc ple, error de GPG), el servei de systemd registrarà el codi de sortida d'error al `journald`. Ens n'adonarem revisant el nostre script de logs o comprovant si el pes de l'arxiu `.gpg` és 0.
+
+## 3. Process & Resource Troubleshooting (Week 3)
+
+### The server feels slow. What do I check?
+1. **Check System Load & Uptime:** Run `uptime`. Look at the load averages (1m, 5m, 15m). If the number is higher than the amount of CPU cores, the system is overloaded.
+2. **Identify the Culprit:** Run `top` or our diagnostic script `sudo ./scripts/08-process-diagnostics.sh`. Sort by `%CPU` or `%MEM` to find the rogue process ID (PID).
+3. **Analyze the Process:** Use `pstree -p <PID>` to see if it spawned child processes.
+4. **Take Action (Graceful first):** - Ask it nicely to stop: `kill -SIGTERM <PID>`
+   - If it ignores you after 10 seconds (zombie/stuck): `kill -SIGKILL <PID>`

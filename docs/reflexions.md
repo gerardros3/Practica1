@@ -22,3 +22,17 @@ No podem esperar que falli. Com a Sysadmins, simulem el caos: executem un `sudo 
 
 **I si els backups fallen silenciosament? Com ens n'adonem?**
 Amb la nostra nova arquitectura, els errors "silenciosos" deixen d'existir. Si el script de backup falla (per falta d'espai al disc o error amb el xifratge GPG), el servei de `systemd` capturarà el codi de sortida d'error (Exit Code != 0) i ho registrarà automàticament al `journald`. Les mètriques clau que ens importen per auditar l'èxit són el propi Exit Code de l'execució i la mida de l'arxiu `.gpg` resultant. Ho podem monitoritzar ràpidament de forma proactiva amb `journalctl -u backup.service`.
+
+# Reflection: Process Management & Resource Control (Week 3)
+
+**SIGTERM vs SIGKILL: When to use each?**
+`SIGTERM` (15) is a polite request to terminate. It can be caught by the application (using a `trap` in bash) allowing it to finish saving data, close database connections, and delete temporary files before exiting. `SIGKILL` (9) is a brutal forced stop executed directly by the kernel. The application cannot intercept it. We only use `SIGKILL` as a last resort if a process is completely frozen and ignoring `SIGTERM`, because it can lead to data corruption.
+
+**How should a service respond to a signal?**
+If a service receives `SIGINT` (Ctrl+C) or `SIGTERM`, it should trigger a cleanup function. Yes, it must save its current state, close file descriptors, and cleanly terminate its child processes (like our workload script does with the `yes` background jobs) to prevent creating "orphan" processes.
+
+**How do you verify a resource limit is working?**
+By applying the Scientific Method: Create a workload that intentionally consumes 100% of a resource (like running `yes > /dev/null &` loops). First, run it without limits and verify via `top` that it consumes 100% CPU. Then, place it in a systemd service with `CPUQuota=20%` (cgroups). Check `top` again; if the process is hard-capped at 20.0%, the limit is mathematically proven to work.
+
+**If a developer's job uses 90% CPU, is that a problem?**
+It depends on the *context*. If the server is a dedicated Batch-Processing node rendering a 3D video, 90% CPU means it's working efficiently. However, if it's a shared Web Server or a Database node, 90% CPU is a massive problem because it will cause latency and timeouts for incoming user requests. To prevent this, we use `cgroups` or the `nice`/`renice` commands to lower the job's priority so it only uses "leftover" CPU cycles.
