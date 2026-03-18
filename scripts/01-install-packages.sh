@@ -48,6 +48,7 @@ install_packages() {
         "ufw"            # Firewall
         "openssh-server" # Secure remote connections
         "gnupg"          # Encryption tool for backups
+        "psmisc"         # Process management (pstree, killall)
     )
 
     log_info "Updating package index..."

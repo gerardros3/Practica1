@@ -26,7 +26,7 @@ check_root() {
 }
 
 verify_packages() {
-    local packages=("git" "vim" "curl" "ufw")
+    local packages=("git" "vim" "curl" "ufw" "psmisc")
     local needs_packages=0
 
     for pkg in "${packages[@]}"; do
