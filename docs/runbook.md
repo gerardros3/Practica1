@@ -28,3 +28,21 @@ La infraestructura utilitza `systemd` per a la gestió de serveis i `journald` p
 3. **Analyze the Process:** Use `pstree -p <PID>` to see if it spawned child processes.
 4. **Take Action (Graceful first):** - Ask it nicely to stop: `kill -SIGTERM <PID>`
    - If it ignores you after 10 seconds (zombie/stuck): `kill -SIGKILL <PID>`
+  
+## 4. Users & Access Management (Week 4)
+
+### Troubleshooting: A user can't access a shared file. How do I debug?
+1. **Verificar els Grups de l'Usuari:** Executar `groups <nom_usuari>` o `id <nom_usuari>`. L'usuari hauria d'estar dins del grup correcte (`greendevcorp`).
+2. **Revisar Propietat i Permisos:** Executar `ls -lah <ruta_del_fitxer>`. Fixar-se en:
+   * Els permisos (ex. `rw-r-----`). Si la 2a columna (grup) no té la lletra `r` o `w`, el membre de l'equip no hi podrà interactuar.
+   * El grup assignat. Si el fitxer no està assignat al grup `greendevcorp`, s'ha de solucionar amb `chown :greendevcorp <fitxer>`.
+3. **El Sticky bit dóna problemes:** Recordar que si algú no pot **esborrar** un fitxer però sí pot llegir i escriure, pot ser degut al *Sticky Bit* aplicat a la carpeta (`t` en els permisos `drwxrwx--T`). Només el propietari del fitxer el pot esborrar.
+
+### Onboarding Guide for New Team Members
+Si s'incorpora un nou desenvolupador (`dev5`):
+1. **Crear l'usuari i assignar-lo a l'equip:** 
+   `sudo useradd -m -g greendevcorp -s /bin/bash dev5`
+2. **Assignar contrasenya o clau SSH:**
+   `sudo passwd dev5`
+3. **Entorn personalitzat:**
+   Al moment de fer el login, el nou membre carregarà automàticament la configuració general ubicada a `/etc/profile.d/greendevcorp.sh`, la qual li habilitarà el `$PATH` correcte per utilitzar les eines internes col·locades a `/home/greendevcorp/bin` i els àlies configurats.
