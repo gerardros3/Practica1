@@ -28,7 +28,11 @@ La infraestructura utilitza `systemd` per a la gestió de serveis i `journald` p
 3. **Analyze the Process:** Use `pstree -p <PID>` to see if it spawned child processes.
 4. **Take Action (Graceful first):** - Ask it nicely to stop: `kill -SIGTERM <PID>`
    - If it ignores you after 10 seconds (zombie/stuck): `kill -SIGKILL <PID>`
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> 7bb80fb9921d36c9f6b7ddb2411bc9352add75b5
 ## 4. Users & Access Management (Week 4)
 
 ### Troubleshooting: A user can't access a shared file. How do I debug?
@@ -46,6 +50,7 @@ Si s'incorpora un nou desenvolupador (`dev5`):
    `sudo passwd dev5`
 3. **Entorn personalitzat:**
    Al moment de fer el login, el nou membre carregarà automàticament la configuració general ubicada a `/etc/profile.d/greendevcorp.sh`, la qual li habilitarà el `$PATH` correcte per utilitzar les eines internes col·locades a `/home/greendevcorp/bin` i els àlies configurats.
+<<<<<<< HEAD
 
 ## 5. Storage & Disaster Recovery (Week 5)
 
@@ -64,3 +69,5 @@ Si la carpeta `/home/greendevcorp` ha estat esborrada accidentalment:
    `sudo rsync -a /mnt/storage/backups/latest/ /home/greendevcorp/`
 4. Confirmar els permisos i propietaris:
    `sudo ./scripts/11-setup-team.sh` (això re-aplicarà el *setgid* i *sticky bit* als directoris recentment restaurats sense tocar les dades).
+=======
+>>>>>>> 7bb80fb9921d36c9f6b7ddb2411bc9352add75b5

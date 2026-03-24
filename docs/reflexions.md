@@ -37,6 +37,7 @@ By applying the Scientific Method: Create a workload that intentionally consumes
 **If a developer's job uses 90% CPU, is that a problem?**
 It depends on the *context*. If the server is a dedicated Batch-Processing node rendering a 3D video, 90% CPU means it's working efficiently. However, if it's a shared Web Server or a Database node, 90% CPU is a massive problem because it will cause latency and timeouts for incoming user requests. To prevent this, we use `cgroups` or the `nice`/`renice` commands to lower the job's priority so it only uses "leftover" CPU cycles.
 
+<<<<<<< HEAD
 # Reflection: Storage, Backup & Recovery (Week 5)
 
 **If you back up every file every night, you’ll have massive backups. How could you reduce storage overhead? What’s the trade-off?**
@@ -51,3 +52,16 @@ L'estratègia 3-2-1 significa tenir **3** còpies de les dades (1 original + 2 b
 
 **How would you handle a database that’s currently being written to?**
 No podem simplement fer un `cp` o `tar` dels fitxers crus d'una base de dades activa (ex. PostgreSQL/MySQL) perquè quedaran inconsistents (arxius trencats a meitat de transacció). La solució correcta és utilitzar les eines pròpies del gestor (`pg_dump` o `mysqldump`) per extreure un fitxer SQL lògic o bé, a nivell de sistema operatiu, fer servir un **Snapshot LVM** que congela l'estat del disc en mil·lisegons abans de fer la còpia.
+=======
+# Reflection: Team Collaboration & Security (Week 4)
+
+**If a file is in a shared directory and owned by 'dev1', but needs to be readable by all team members, what permissions would you set? Why?**
+Hem d'establir permisos de lectura i escriptura (o només lectura, depenent de l'ús) al grup associat a la carpeta, i assegurar-nos que el grup propietari del fitxer sigui `greendevcorp`. Això s'aconsegueix amb `chmod 640` o `644`. Per què? Perquè amb el primer dígit controlem al propietari i amb el segon als companys de l'equip. Evitem `777` per tal de no exposar les dades a usuaris externs.
+
+**What's the difference between setgid on a directory vs. a file? Why would you use each?**
+Quan apliques el **setgid a un directori**, qualsevol fitxer o subdirectori que es creï a dins heretarà el grup del directori pare en comptes del grup principal de l'usuari que el crea. És vital per a carpetes compartides (`/home/greendevcorp/shared`) per assegurar la col·laboració.
+Quan s'aplica a un **fitxer executable**, el programa s'executarà amb els privilegis del grup propietari del fitxer, no amb el grup de l'usuari que l'invoca (útil per a programes que necessiten accés a fitxers determinats, però amb menys risc que *setuid*).
+
+**How would you verify that your permission model actually enforces the security policy you intended?**
+De la mateixa manera que testejàvem els límits de recursos: **Simulant accessos**. Creant un *Security Verification Script* on fem crides simulades via `sudo -u dev2 touch ...` o `sudo -u dev3 rm ...`. Si el comportament d'escriptura o d'esborrat (restringit per l'Sticky Bit) llança un codi d'error a bash (Exit Code != 0), confirmem empíricament que el model està funcionant de manera correcta.
+>>>>>>> 7bb80fb9921d36c9f6b7ddb2411bc9352add75b5
