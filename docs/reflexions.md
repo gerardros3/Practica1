@@ -30,10 +30,10 @@ No podem fer un `cp` dels fitxers crus d'una BD activa. Cal utilitzar eines del 
 # Final Reflection Essay
 
 **Gerard Ros:**
-* **What was the most challenging aspect of this project?** ...
-* **What would you do differently if you started over?** ...
-* **How has your understanding of system administration changed?** ...
-* **What’s one thing you’d want to learn more about?** ...
+* **What was the most challenging aspect of this project?** El més difícil ha estat entendre i aplicar el concepte d'idempotència. Fer un script perquè funcioni a la primera és relativament fàcil, però escriure'l de manera que comprovi si els usuaris, les particions o els permisos ja existeixen perquè no falli si l'executes dues o tres vegades seguides m'ha portat bastants maldecaps i molts assajos i errors.
+* **What would you do differently if you started over?** Si tornés a començar, planificaria molt millor els permisos i l'estructura de carpetes abans d'escriure codi. Moltes vegades m'he trobat encallat perquè un script fallava per culpa d'alguna tonteria, com que un usuari no tenia accés a la carpeta pare d'un directori compartit (com em va passar a la Week 4). També faria proves més petites en lloc d'intentar fer scripts tan llargs de cop.
+* **How has your understanding of system administration changed?** Abans de l'assignatura pensava que administrar servidors era simplement saber-se moltes comandes de Linux de memòria i anar-les escrivint a la terminal. Ara veig que la feina real no és aquesta: un bon sysadmin automatitza tota la infraestructura amb codi, ho deixa tot documentat, i sobretot, es prepara perquè quan les coses fallin (que fallaran), el sistema es recuperi sol o deixi uns bons logs per saber què ha passat.
+* **What’s one thing you’d want to learn more about?** M'agradaria aprendre més sobre contenidors (com Docker). A la pràctica hem limitat recursos amb PAM i hem separat usuaris amb grups i setgid, però m'agradaria veure com es fa això mateix de forma més moderna empaquetant aplicacions. També em faria gràcia aprendre a muntar un panell gràfic per veure el consum de CPU o RAM en directe, en lloc d'haver de llegir logs en text pla a la terminal.
 
 **Miquel Garcia:**
 * **What was the most challenging aspect of this project?** El repte més gran ha estat entendre i aplicar el control de processos i els límits de recursos amb `cgroups` (Week 3). Passar de simplement "matar" un procés problemàtic amb `SIGKILL` a dissenyar un *graceful shutdown* capturant senyals amb `trap` ens ha obligat a canviar la mentalitat i a pensar en com es comporten les aplicacions a baix nivell quan interactuen amb el kernel de Linux.
