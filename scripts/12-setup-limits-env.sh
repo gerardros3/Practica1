@@ -10,6 +10,7 @@
 
 set -euo pipefail
 
+# Constants
 readonly LIMITS_FILE="/etc/security/limits.d/greendevcorp.conf"
 readonly PROFILE_FILE="/etc/profile.d/greendevcorp.sh"
 
@@ -60,7 +61,7 @@ if id -nG "$USER" 2>/dev/null | grep -qw "greendevcorp"; then
     alias tasks='cat /home/greendevcorp/done.log'
 fi
 EOF
-    # Ha de ser executable perquè s'evaluï durant el login
+    # Must be executable to be evaluated during login
     chmod +x "$PROFILE_FILE"
     log_info "Environment saved to ${PROFILE_FILE}."
 }

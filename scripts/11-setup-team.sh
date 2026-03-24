@@ -36,6 +36,8 @@ setup_group_and_users() {
     if ! getent group "$TEAM_GROUP" >/dev/null; then
         groupadd "$TEAM_GROUP"
         log_info "Group ${TEAM_GROUP} created."
+    else
+        log_info "Group ${TEAM_GROUP} already exists."
     fi
 
     for user in "${TEAM_USERS[@]}"; do
@@ -71,10 +73,9 @@ setup_directories_and_permissions() {
     # dev1 can write, everyone else in the system can read
     chmod 644 "$LOG_FILE"
     
-        log_info "Ensuring developers can traverse the base directory..."
-	    chgrp "$TEAM_GROUP" "$BASE_DIR"
-	        chmod 750 "$BASE_DIR"
-
+    log_info "Ensuring developers can traverse the base directory..."
+    chgrp "$TEAM_GROUP" "$BASE_DIR"
+    chmod 750 "$BASE_DIR"
 }
 
 main() {
