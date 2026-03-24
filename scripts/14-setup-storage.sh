@@ -10,12 +10,18 @@
 
 set -euo pipefail
 
+# Constants
 readonly DISK="/dev/sdb"
 readonly MOUNT_POINT="/mnt/storage"
 readonly FSTAB_ENTRY="${DISK}1 ${MOUNT_POINT} ext4 defaults 0 2"
 
-log_info() { echo "[INFO] $(date +'%Y-%m-%d %H:%M:%S') - $*"; }
-log_error() { echo "[ERROR] $(date +'%Y-%m-%d %H:%M:%S') - $*" >&2; }
+log_info() {
+    echo "[INFO] $(date +'%Y-%m-%d %H:%M:%S') - $*"
+}
+
+log_error() {
+    echo "[ERROR] $(date +'%Y-%m-%d %H:%M:%S') - $*" >&2
+}
 
 check_root() {
     if [ "$EUID" -ne 0 ]; then
@@ -70,7 +76,7 @@ setup_storage() {
     fi
 
     log_info "Mounting the disk..."
-    # 'mount -a' llegirà fstab i muntarà sdb1 a /mnt/storage
+    # 'mount -a' will read fstab and mount sdb1 to /mnt/storage
     mount -a
     
     # Set proper permissions for the backup directory

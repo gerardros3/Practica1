@@ -3,17 +3,34 @@
 # Purpose: Perform incremental snapshot backups using rsync
 # Usage: sudo ./15-advanced-backup.sh
 # Author: Gerard Ros & Miquel Garcia
+# Date: 2026-03-24
+# Exit Codes:
+#   0 - Success
+#   1 - Execution failed (not root)
 
 set -euo pipefail
 
+# Constants
 readonly SOURCE_DIR="/home/greendevcorp"
 readonly BACKUP_BASE="/mnt/storage/backups"
 readonly DATE=$(date +'%Y-%m-%d_%H-%M-%S')
 readonly DEST_DIR="${BACKUP_BASE}/backup_${DATE}"
 readonly LATEST_LINK="${BACKUP_BASE}/latest"
 
-log_info() { echo "[INFO] $(date +'%Y-%m-%d %H:%M:%S') - $*"; }
-log_error() { echo "[ERROR] $(date +'%Y-%m-%d %H:%M:%S') - $*" >&2; }
+log_info() {
+    echo "[INFO] $(date +'%Y-%m-%d %H:%M:%S') - $*"
+}
+
+log_error() {
+    echo "[ERROR] $(date +'%Y-%m-%d %H:%M:%S') - $*" >&2
+}
+
+check_root() {
+    if [ "$EUID" -ne 0 ]; then
+        log_error "Please run the script with sudo."
+        exit 1
+    fi
+}
 
 install_dependencies() {
     if ! command -v rsync >/dev/null 2>&1; then
@@ -23,15 +40,7 @@ install_dependencies() {
     fi
 }
 
-main() {
-    if [ "$EUID" -ne 0 ]; then
-        log_error "Please run as root."
-        exit 1
-    fi
-
-    # Ensure rsync is installed before proceeding
-    install_dependencies
-
+perform_backup() {
     mkdir -p "$BACKUP_BASE"
     log_info "Starting backup of ${SOURCE_DIR} to ${DEST_DIR}..."
 
@@ -45,7 +54,12 @@ main() {
 
     # Update the 'latest' symlink
     ln -sfn "$DEST_DIR" "$LATEST_LINK"
+}
 
+main() {
+    check_root
+    install_dependencies
+    perform_backup
     log_info "Backup completed successfully!"
 }
 
