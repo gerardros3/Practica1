@@ -31,6 +31,15 @@ check_disk() {
     fi
 }
 
+install_dependencies() {
+    log_info "Checking dependencies..."
+    if ! command -v parted >/dev/null 2>&1; then
+        log_info "Installing 'parted'..."
+        apt-get update -qq >/dev/null
+        apt-get install -y parted >/dev/null
+    fi
+}
+
 setup_storage() {
     log_info "Setting up storage on $DISK..."
 
@@ -39,6 +48,9 @@ setup_storage() {
         log_info "Partitioning ${DISK}..."
         parted -s "$DISK" mklabel gpt
         parted -s "$DISK" mkpart primary ext4 0% 100%
+        
+        # Give the OS a second to recognize the new partition
+        sleep 2
         
         log_info "Formatting ${DISK}1 to ext4..."
         mkfs.ext4 "${DISK}1"
@@ -58,6 +70,7 @@ setup_storage() {
     fi
 
     log_info "Mounting the disk..."
+    # 'mount -a' llegirà fstab i muntarà sdb1 a /mnt/storage
     mount -a
     
     # Set proper permissions for the backup directory
@@ -70,6 +83,7 @@ setup_storage() {
 main() {
     check_root
     check_disk
+    install_dependencies
     setup_storage
     log_info "Storage setup completed successfully! Disk mounted at $MOUNT_POINT"
 }
