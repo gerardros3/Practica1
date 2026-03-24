@@ -70,6 +70,11 @@ setup_directories_and_permissions() {
     chown dev1:"$TEAM_GROUP" "$LOG_FILE"
     # dev1 can write, everyone else in the system can read
     chmod 644 "$LOG_FILE"
+    
+        log_info "Ensuring developers can traverse the base directory..."
+	    chgrp "$TEAM_GROUP" "$BASE_DIR"
+	        chmod 750 "$BASE_DIR"
+
 }
 
 main() {
