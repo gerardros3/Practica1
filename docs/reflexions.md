@@ -36,3 +36,18 @@ By applying the Scientific Method: Create a workload that intentionally consumes
 
 **If a developer's job uses 90% CPU, is that a problem?**
 It depends on the *context*. If the server is a dedicated Batch-Processing node rendering a 3D video, 90% CPU means it's working efficiently. However, if it's a shared Web Server or a Database node, 90% CPU is a massive problem because it will cause latency and timeouts for incoming user requests. To prevent this, we use `cgroups` or the `nice`/`renice` commands to lower the job's priority so it only uses "leftover" CPU cycles.
+
+# Reflection: Storage, Backup & Recovery (Week 5)
+
+**If you back up every file every night, you’ll have massive backups. How could you reduce storage overhead? What’s the trade-off?**
+Per reduir l'impacte en l'emmagatzematge, hem implementat un sistema de **Backups Incrementals** usant `rsync --link-dest`. Aquesta estratègia crea *hard links* (enllaços durs) per als fitxers que no han estat modificats des de l'última còpia.
+El *trade-off* (inconvenient) és que la reconstrucció o l'esborrat de còpies antigues és més complex computacionalment, i si el disc físic on es guarden falla o es corromp l'inode, perdem múltiples dies de backup de cop.
+
+**If you lose the main server, can you restore from backup? Have you actually tested this?**
+Sí, hem programat l'script `17-verify-backup.sh` per automatitzar la prova teòrica: l'script restaura l'últim backup en una ruta temporal (`/tmp/restore_test`) i verifica criptogràficament que hi hagi els fitxers crítics. Tot i això, a la pràctica un backup no testejat en *bare-metal* no és un backup, per això cal simular el caos: crear una VM nova, enganxar el disc de backup i recuperar el servei Nginx sencer.
+
+**What is the 3-2-1 principle?**
+L'estratègia 3-2-1 significa tenir **3** còpies de les dades (1 original + 2 backups), en **2** mitjans d'emmagatzematge diferents (ex. disc primari de la VM i un disc secundari/NFS muntat per xarxa), i **1** còpia "*offsite*" (fora de les oficines, ex. Amazon S3 o el núvol).
+
+**How would you handle a database that’s currently being written to?**
+No podem simplement fer un `cp` o `tar` dels fitxers crus d'una base de dades activa (ex. PostgreSQL/MySQL) perquè quedaran inconsistents (arxius trencats a meitat de transacció). La solució correcta és utilitzar les eines pròpies del gestor (`pg_dump` o `mysqldump`) per extreure un fitxer SQL lògic o bé, a nivell de sistema operatiu, fer servir un **Snapshot LVM** que congela l'estat del disc en mil·lisegons abans de fer la còpia.

@@ -34,3 +34,11 @@
   * A la carpeta `shared/` utilitzem l'especificador **setgid (`chmod 2770`)** perquè tots els documents nous creats per qualsevol `dev` estiguin directament sota el paraigua del grup col·laboratiu en comptes del seu propi.
   * També hem introduït el **Sticky Bit (`chmod +t`)**. Aquest flag addicional en un directori prevé que l'usuari `dev2` esborri de manera accidental (o maliciosa) un fitxer propietat del `dev1` en el medi compartit.
 * **Limitació de Recursos via PAM:** Per evitar que un codi escrit per un `dev` (per exemple, un loop infinit de processos) col·lapsi el sistema dels seus companys, utilitzem `limits.conf` (del mòdul de seguretat `PAM`). Així garantim un `hard limit` en el nombre màxim de processos i fitxers oberts (nproc, nofile) de manera transversal a tothom que sigui del grup `@greendevcorp`.
+
+## 5. Storage & Backup Architecture (Week 5)
+
+* **Disk Setup & FSTAB:** Hem introduït un segon disc virtual (`/dev/sdb`) exclusivament per dades i backups. Això aïlla el sistema operatiu de les dades d'usuari. L'hem particionat amb `parted` usant el format `ext4` per ser un *journaling file system* robust. El muntatge a `/mnt/storage` es fa persistent via `/etc/fstab` (`defaults 0 2`).
+* **Backup Strategy:** Utilitzem una política "Daily Incremental, Weekly Full" optimitzada per *hard-links*.
+  * **RPO (Recovery Point Objective):** 24 hores (fem backup cada dia, pel que màxim perdem la feina d'un dia).
+  * **RTO (Recovery Time Objective):** Menys de 15 minuts. Com que guardem els arxius crus usant `rsync` sense compressió `tar.gz`, el temps de restauració es limita només a la velocitat d'escriptura del disc.
+* **Network Storage (NFS):** Hem instal·lat `nfs-kernel-server` per compartir `/mnt/storage/nfs_shared` a tota la xarxa local. Això ens permet tenir aplicacions (Nginx) en una màquina diferent de les dades.
