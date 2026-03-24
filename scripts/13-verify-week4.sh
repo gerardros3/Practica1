@@ -32,7 +32,9 @@ check_root() {
 
 verify_permissions() {
     log_info "Verifying shared directory permissions (setgid & sticky bit)..."
-    
+
+    rm -f "${SHARED_DIR}/dev2_test_file"
+
     # dev2 creates a file
     sudo -u dev2 touch "${SHARED_DIR}/dev2_test_file"
     local group_owner
