@@ -32,8 +32,26 @@ Quan un membre de l'equip marxa de l'empresa:
 3. **Analyze & Act:** * Analitza els fills amb `pstree -p <PID>`.
    * Atura el procés suaument (Graceful): `kill -SIGTERM <PID>`
    * Si es queda clavat, força'l: `kill -SIGKILL <PID>`
+  
+## 3. Users & Access Management (Week 4)
 
-## 3. Storage & Disaster Recovery (Week 5)
+### Troubleshooting: A user can't access a shared file. How do I debug?
+1. **Verificar els Grups de l'Usuari:** Executar `groups <nom_usuari>` o `id <nom_usuari>`. L'usuari hauria d'estar dins del grup correcte (`greendevcorp`).
+2. **Revisar Propietat i Permisos:** Executar `ls -lah <ruta_del_fitxer>`. Fixar-se en:
+   * Els permisos (ex. `rw-r-----`). Si la 2a columna (grup) no té la lletra `r` o `w`, el membre de l'equip no hi podrà interactuar.
+   * El grup assignat. Si el fitxer no està assignat al grup `greendevcorp`, s'ha de solucionar amb `chown :greendevcorp <fitxer>`.
+3. **El Sticky bit dóna problemes:** Recordar que si algú no pot **esborrar** un fitxer però sí pot llegir i escriure, pot ser degut al *Sticky Bit* aplicat a la carpeta (`t` en els permisos `drwxrwx--T`). Només el propietari del fitxer el pot esborrar.
+
+### Onboarding Guide for New Team Members
+Si s'incorpora un nou desenvolupador (`dev5`):
+1. **Crear l'usuari i assignar-lo a l'equip:** 
+   `sudo useradd -m -g greendevcorp -s /bin/bash dev5`
+2. **Assignar contrasenya o clau SSH:**
+   `sudo passwd dev5`
+3. **Entorn personalitzat:**
+   Al moment de fer el login, el nou membre carregarà automàticament la configuració general ubicada a `/etc/profile.d/greendevcorp.sh`, la qual li habilitarà el `$PATH` correcte per utilitzar les eines internes col·locades a `/home/greendevcorp/bin` i els àlies configurats.
+
+## 4. Storage & Disaster Recovery (Week 5)
 
 ### How to mount a new disk manually
 1. Particionar: `sudo parted -s /dev/sdc mklabel gpt mkpart primary ext4 0% 100%`
